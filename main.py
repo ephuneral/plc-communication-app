@@ -48,7 +48,7 @@ def parse_datetime(data, offset=0) -> datetime | None:
         second = snap7.util.get_usint(data, 6 + offset)
         return datetime(year, month, day, hour, minute, second)
     except ValueError:
-        return None
+        return datetime(1970, 1, 1)
 
 
 def parse_tube(plc: PlcClient, cfg) -> Pipe:
@@ -153,8 +153,12 @@ def main() -> None:
             if now - last_read >= cfg.poll_seconds:
                 last_read = now
                 data = plc.client.db_read(cfg.send_db_number, 0, 1)
+                recv = plc.client.db_read(cfg.recv_db_number, 0, 1)
                 if is_new_data_present(plc, cfg, data):
                     pg.write(parse_tube(plc, cfg))
+                    snap7.util.set_bool(recv, 0, 1, True)
+                    plc.client.db_write(cfg.recv_db_number, 0, recv)
+                    log.info("Pipe saved")
                 elif is_need_read(plc, cfg, data):
                     params = plc.client.db_read(cfg.send_db_number, 406, 30)
                     result = pg.search(
@@ -168,7 +172,9 @@ def main() -> None:
                         page_size=10
                     )
                     write_tubes_in_plc(plc, cfg, result['items'])
-
+                    snap7.util.set_bool(recv, 0, 2, True)
+                    plc.client.db_write(cfg.recv_db_number, 0, recv)
+                    log.info("Pipes readed")
 
             time.sleep(cfg.poll_seconds)
         except Exception as e:
