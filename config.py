@@ -2,14 +2,15 @@ from dataclasses import dataclass
 import os
 from dotenv import load_dotenv
 
+# Config class
 @dataclass(frozen=True)
 class PlcConfig:
-    ip: str
-    send_db_number: int
-    recv_db_number: int
-    poll_seconds: float
+    ip: str                 # IP address
+    send_db_number: int     # Data Block SEND number
+    recv_db_number: int     # Data block RECV number
+    poll_seconds: float     # Sleep time between polls
 
-
+# Load config from ,env to PlcConfig class
 def load_config() -> PlcConfig:
     load_dotenv()
 

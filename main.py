@@ -13,31 +13,35 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+# Live bit function
 def toggle_live_bit(plc: PlcClient, cfg):
-    data = plc.client.db_read(cfg.recv_db_number, 0, 1)
-    live_bit = snap7.util.get_bool(data, 0, 0)
-    snap7.util.set_bool(data, 0, 0, not live_bit)
-    plc.client.db_write(cfg.recv_db_number, 0, data)
+    data = plc.client.db_read(cfg.recv_db_number, 0, 1)     # Read from PLC
+    live_bit = snap7.util.get_bool(data, 0, 0)              # Parse bit
+    snap7.util.set_bool(data, 0, 0, not live_bit)           # Invert bit
+    plc.client.db_write(cfg.recv_db_number, 0, data)        # Write to PLC
 
 
+# Check new data
 def is_new_data_present(plc: PlcClient, cfg, data):
-    if snap7.util.get_bool(data, 0, 0):
-        snap7.util.set_bool(data, 0, 0, False)
-        plc.client.db_write(cfg.send_db_number, 0, data)
+    if snap7.util.get_bool(data, 0, 0):                     # Parse bit from data
+        snap7.util.set_bool(data, 0, 0, False)              # Set bit to false
+        plc.client.db_write(cfg.send_db_number, 0, data)    # Write to PLC
         return True
     else:
         return False
 
 
+# Check is need read data from database
 def is_need_read(plc: PlcClient, cfg, data):
-    if snap7.util.get_bool(data, 0, 1):
-        snap7.util.set_bool(data, 0, 1, False)
-        plc.client.db_write(cfg.send_db_number, 0, data)
+    if snap7.util.get_bool(data, 0, 1):                     # Parse bit from data
+        snap7.util.set_bool(data, 0, 1, False)              # Set bit to false
+        plc.client.db_write(cfg.send_db_number, 0, data)    # Write to PLC
         return True
     else:
         return False
 
 
+# Parse date and time from data with offset
 def parse_datetime(data, offset=0) -> datetime | None:
     try:
         day = snap7.util.get_usint(data, 0 + offset)
@@ -46,12 +50,13 @@ def parse_datetime(data, offset=0) -> datetime | None:
         hour = snap7.util.get_usint(data, 4 + offset)
         minute = snap7.util.get_usint(data, 5 + offset)
         second = snap7.util.get_usint(data, 6 + offset)
-        return datetime(year, month, day, hour, minute, second)
+        return datetime(year, month, day, hour, minute, second) # Return datetime
     except ValueError:
-        return datetime(1970, 1, 1)
+        return datetime(1970, 1, 1) # Or UNIX epoch date if raised exception
 
 
-def parse_tube(plc: PlcClient, cfg) -> Pipe:
+# Parse pipe from PLC
+def parse_pipe(plc: PlcClient, cfg) -> Pipe:
     raw = plc.client.db_read(cfg.send_db_number, 2, 404)
     return Pipe(
         ts=parse_datetime(raw),
@@ -71,6 +76,7 @@ def parse_tube(plc: PlcClient, cfg) -> Pipe:
     )
 
 
+# Map pipe from entity pipe(Database) to data(PLC)
 def map_tube(pipe, data):
     snap7.util.set_usint(data, 0, pipe.ts.day)
     snap7.util.set_usint(data, 1, pipe.ts.month)
@@ -97,7 +103,8 @@ def map_tube(pipe, data):
     return data
 
 
-def write_tubes_in_plc(plc: PlcClient, cfg, pipes):
+# Write pipes from pipes list to PLC DB (10 items)
+def write_pipes_in_plc(plc: PlcClient, cfg, pipes):
     for i in range(10):
         data = plc.client.db_read(cfg.recv_db_number, 2 + (i * 404), 404)
         if i < len(pipes):
@@ -126,42 +133,44 @@ def write_tubes_in_plc(plc: PlcClient, cfg, pipes):
             plc.client.db_write(cfg.recv_db_number, 2 + (i * 404), data)
 
 
+# Main program
 def main() -> None:
-    cfg = load_config()
+    cfg = load_config() # Load config
 
     pg_dsn = os.getenv("PG_DSN")
     if not pg_dsn:
         raise SystemExit("PG_DSN не задан в .env")
 
-    pg = PgWriter(pg_dsn)
+    pg = PgWriter(pg_dsn) # Connect to PG database
     log.info("PostgreSQL connected")
 
     plc = PlcClient(cfg)
-    plc.connect()
+    plc.connect() # Connect to PLC
 
     last_read = 0.0
     last_heartbeat = 0.0
 
+    # Main cycle
     while True:
         now = time.time()
 
         try:
-            if now - last_heartbeat >= 1:
+            if now - last_heartbeat >= 1: # live bit blinking 1 Hz
                 last_heartbeat = now
                 toggle_live_bit(plc, cfg)
 
-            if now - last_read >= cfg.poll_seconds:
+            if now - last_read >= cfg.poll_seconds: # Check new command
                 last_read = now
                 data = plc.client.db_read(cfg.send_db_number, 0, 1)
                 recv = plc.client.db_read(cfg.recv_db_number, 0, 1)
-                if is_new_data_present(plc, cfg, data):
-                    pg.write(parse_tube(plc, cfg))
-                    snap7.util.set_bool(recv, 0, 1, True)
-                    plc.client.db_write(cfg.recv_db_number, 0, recv)
+                if is_new_data_present(plc, cfg, data): # Command write
+                    pg.write(parse_pipe(plc, cfg)) # Parse pipe and write
+                    snap7.util.set_bool(recv, 0, 1, True) # Set True status bit "writed"
+                    plc.client.db_write(cfg.recv_db_number, 0, recv) # Write status
                     log.info("Pipe saved")
-                elif is_need_read(plc, cfg, data):
-                    params = plc.client.db_read(cfg.send_db_number, 406, 30)
-                    result = pg.search(
+                elif is_need_read(plc, cfg, data): # Command read
+                    params = plc.client.db_read(cfg.send_db_number, 406, 30) # Read search params from PLC
+                    result = pg.search(  # Parse params
                         page=snap7.util.get_uint(params, 0),
                         diameter=snap7.util.get_uint(params, 2),
                         thickness=snap7.util.get_uint(params, 4),
@@ -171,9 +180,9 @@ def main() -> None:
                         date_to=parse_datetime(params, 22),
                         page_size=10
                     )
-                    write_tubes_in_plc(plc, cfg, result['items'])
-                    snap7.util.set_bool(recv, 0, 2, True)
-                    plc.client.db_write(cfg.recv_db_number, 0, recv)
+                    write_pipes_in_plc(plc, cfg, result['items']) # Write pipes list to PLC
+                    snap7.util.set_bool(recv, 0, 2, True) # Set True status bit "readed"
+                    plc.client.db_write(cfg.recv_db_number, 0, recv) # Write status
                     log.info("Pipes readed")
 
             time.sleep(cfg.poll_seconds)

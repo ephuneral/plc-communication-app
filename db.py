@@ -28,6 +28,7 @@ class Base(DeclarativeBase):
     pass
 
 
+# Pipe Entity
 class Pipe(Base):
     __tablename__ = "pipes"
 
@@ -65,6 +66,7 @@ class Pipe(Base):
     )
 
 
+# Database class
 class PgWriter:
     def __init__(self, dsn: str):
         self.engine = create_engine(
@@ -74,6 +76,7 @@ class PgWriter:
         )
         Base.metadata.create_all(self.engine)
 
+    # Method for search with parameters
     def search(
             self,
             page: int = 1,
@@ -134,6 +137,7 @@ class PgWriter:
                 "page_size": page_size,
             }
 
+    # Method to write one pipe in database
     def write(self, data: Pipe) -> None:
         with Session(self.engine) as session:
             try:
