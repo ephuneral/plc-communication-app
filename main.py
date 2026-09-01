@@ -57,22 +57,22 @@ def parse_datetime(data, offset=0) -> datetime | None:
 
 # Parse pipe from PLC
 def parse_pipe(plc: PlcClient, cfg) -> Pipe:
-    raw = plc.client.db_read(cfg.send_db_number, 2, 404)
+    raw = plc.client.db_read(cfg.send_db_number, 2, 412)
     return Pipe(
         ts=parse_datetime(raw),
         length=snap7.util.get_uint(raw, 8),
-        diameter=snap7.util.get_uint(raw, 10),
-        thickness=snap7.util.get_uint(raw, 12),
-        serial_number=snap7.util.get_udint(raw, 14),
-        factory_number=snap7.util.get_udint(raw, 18),
-        operator=snap7.util.get_string(raw, 22),
-        pressure_start=snap7.util.get_uint(raw, 34),
-        pressure_end=snap7.util.get_uint(raw, 36),
-        pressure_target=snap7.util.get_uint(raw, 38),
-        duration=snap7.util.get_uint(raw, 40),
-        result=snap7.util.get_uint(raw, 42),
-        graph_x=[snap7.util.get_uint(raw, 44 + i*2) for i in range(90)],
-        graph_y=[snap7.util.get_uint(raw, 224 + i*2) for i in range(90)]
+        diameter=snap7.util.get_real(raw, 10),
+        thickness=snap7.util.get_real(raw, 14),
+        serial_number=snap7.util.get_udint(raw, 18),
+        factory_number=snap7.util.get_udint(raw, 22),
+        operator=snap7.util.get_string(raw, 26),
+        pressure_start=snap7.util.get_real(raw, 38),
+        pressure_end=snap7.util.get_real(raw, 42),
+        pressure_target=snap7.util.get_uint(raw, 46),
+        duration=snap7.util.get_uint(raw, 48),
+        result=snap7.util.get_uint(raw, 50),
+        graph_x=[snap7.util.get_uint(raw, 52 + i*2) for i in range(90)],
+        graph_y=[snap7.util.get_uint(raw, 232 + i*2) for i in range(90)]
     )
 
 
@@ -85,20 +85,20 @@ def map_tube(pipe, data):
     snap7.util.set_usint(data, 5, pipe.ts.minute)
     snap7.util.set_usint(data, 6, pipe.ts.second)
     snap7.util.set_uint(data, 8, pipe.length)
-    snap7.util.set_uint(data, 10, pipe.diameter)
-    snap7.util.set_uint(data, 12, pipe.thickness)
-    snap7.util.set_udint(data, 14, pipe.serial_number)
-    snap7.util.set_udint(data, 18, pipe.factory_number)
-    snap7.util.set_string(data, 22, pipe.operator, 10)
-    snap7.util.set_uint(data, 34, pipe.pressure_start)
-    snap7.util.set_uint(data, 36, pipe.pressure_end)
-    snap7.util.set_uint(data, 38, pipe.pressure_target)
-    snap7.util.set_uint(data, 40, pipe.duration)
-    snap7.util.set_uint(data, 42, pipe.result)
+    snap7.util.set_real(data, 10, pipe.diameter)
+    snap7.util.set_real(data, 14, pipe.thickness)
+    snap7.util.set_udint(data, 18, pipe.serial_number)
+    snap7.util.set_udint(data, 22, pipe.factory_number)
+    snap7.util.set_string(data, 24, pipe.operator, 10)
+    snap7.util.set_real(data, 38, pipe.pressure_start)
+    snap7.util.set_real(data, 42, pipe.pressure_end)
+    snap7.util.set_uint(data, 46, pipe.pressure_target)
+    snap7.util.set_uint(data, 48, pipe.duration)
+    snap7.util.set_uint(data, 50, pipe.result)
     for i in range(90):
-        snap7.util.set_uint(data, 44 + (i * 2), pipe.graph_x[i])
+        snap7.util.set_uint(data, 52 + (i * 2), pipe.graph_x[i])
     for i in range(90):
-        snap7.util.set_uint(data, 224 + (i * 2), pipe.graph_y[i])
+        snap7.util.set_uint(data, 232 + (i * 2), pipe.graph_y[i])
 
     return data
 
@@ -106,10 +106,10 @@ def map_tube(pipe, data):
 # Write pipes from pipes list to PLC DB (10 items)
 def write_pipes_in_plc(plc: PlcClient, cfg, pipes):
     for i in range(10):
-        data = plc.client.db_read(cfg.recv_db_number, 2 + (i * 404), 404)
+        data = plc.client.db_read(cfg.recv_db_number, 2 + (i * 412), 412)
         if i < len(pipes):
             data = map_tube(pipes[i], data)
-            plc.client.db_write(cfg.recv_db_number, 2 + (i * 404), data)
+            plc.client.db_write(cfg.recv_db_number, 2 + (i * 412), data)
         else:
             data = map_tube(
                 Pipe(
@@ -130,7 +130,7 @@ def write_pipes_in_plc(plc: PlcClient, cfg, pipes):
                 ),
                 data
             )
-            plc.client.db_write(cfg.recv_db_number, 2 + (i * 404), data)
+            plc.client.db_write(cfg.recv_db_number, 2 + (i * 412), data)
 
 
 # Main program
@@ -155,7 +155,7 @@ def main() -> None:
         now = time.time()
 
         try:
-            if now - last_heartbeat >= 1: # live bit blinking 1 Hz
+            if now - last_heartbeat >= 1.0: # live bit blinking 1 Hz
                 last_heartbeat = now
                 toggle_live_bit(plc, cfg)
 
@@ -169,7 +169,7 @@ def main() -> None:
                     plc.client.db_write(cfg.recv_db_number, 0, recv) # Write status
                     log.info("Pipe saved")
                 elif is_need_read(plc, cfg, data): # Command read
-                    params = plc.client.db_read(cfg.send_db_number, 406, 30) # Read search params from PLC
+                    params = plc.client.db_read(cfg.send_db_number, 414, 34) # Read search params from PLC
                     result = pg.search(  # Parse params
                         page=snap7.util.get_uint(params, 0),
                         diameter=snap7.util.get_uint(params, 2),
