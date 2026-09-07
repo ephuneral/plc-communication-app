@@ -7,7 +7,7 @@ import io
 # Настройка страницы
 st.set_page_config(page_title="Поиск труб", layout="wide")
 
-API_URL = "http://localhost:8000"
+API_URL = "http://plc-api:8000"
 
 st.title("Архив испытаний")
 
