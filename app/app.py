@@ -56,7 +56,7 @@ def load_data(page: int):
                 if "ts" in df.columns:
                     df["ts"] = pd.to_datetime(df["ts"], format='ISO8601').dt.strftime("%d/%m/%Y %H:%M:%S")
 
-                result_map = {0: "ОТСУТ", 1: "НЕ ГОД", 2: "ГОД"}
+                result_map = {0: "ОТСУТ", 1: "ГОД", 2: "НЕ ГОД"}
                 if "result" in df.columns:
                     df["result"] = df["result"].map(result_map).fillna(df["result"])
 
