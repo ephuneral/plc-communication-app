@@ -201,7 +201,7 @@ if not st.session_state.df.empty:
         # Кнопка скачивания графика
         graph_df = pd.DataFrame({
             "Время, сек": [x * 0.1 for x in graph_x],
-            "Давление, бар": graph_y
+            "Давление, атм": graph_y
         })
 
         excel_graph = io.BytesIO()
@@ -217,30 +217,30 @@ if not st.session_state.df.empty:
         )
 
         # === ГРАФИК ЗАКОММЕНТИРОВАН ===
-        # graph_x_seconds = [x * 0.1 for x in graph_x]
-        #
-        # fig = go.Figure()
-        # fig.add_trace(go.Scatter(
-        #     x=graph_x_seconds, y=graph_y, mode='lines',
-        #     line=dict(color='royalblue', width=2), name='Давление'
-        # ))
-        #
-        # target_pressure = selected_pipe.get("pressure_target", 0)
-        # if target_pressure > 0:
-        #     fig.add_hline(
-        #         y=target_pressure, line_dash="dash", line_color="red",
-        #         annotation_text=f"Цель: {target_pressure} бар",
-        #         annotation_position="top right"
-        #     )
-        #
-        # fig.update_layout(
-        #     title=f"График испытания (Серийный: {selected_pipe['serial_number']})",
-        #     xaxis_title="Время, сек", yaxis_title="Давление, бар",
-        #     hovermode="closest", template="plotly_white"
-        # )
-        # fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
-        # fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
-        # st.plotly_chart(fig, width='stretch')
+        graph_x_seconds = [x * 0.1 for x in graph_x]
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=graph_x_seconds, y=graph_y, mode='lines',
+            line=dict(color='royalblue', width=2), name='Давление'
+        ))
+
+        target_pressure = selected_pipe.get("pressure_target", 0)
+        if target_pressure > 0:
+            fig.add_hline(
+                y=target_pressure, line_dash="dash", line_color="red",
+                annotation_text=f"Цель: {target_pressure} бар",
+                annotation_position="top right"
+            )
+
+        fig.update_layout(
+            title=f"График испытания (Серийный: {selected_pipe['serial_number']})",
+            xaxis_title="Время, сек", yaxis_title="Давление, атм",
+            hovermode="closest", template="plotly_white"
+        )
+        fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='LightGray')
+        st.plotly_chart(fig, width='stretch')
     else:
         st.info("Для выбранной трубы отсутствуют данные графика.")
 else:
