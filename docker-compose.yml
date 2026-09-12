@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  plc-main:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: plc-main
+    restart: always
+    command: python main.py
+    env_file:
+      - .env
+    environment:
+      - PG_DSN=${PG_DSN}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - plc_network
+
+  plc-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: plc-api
+    restart: always
+    command: uvicorn api:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PG_DSN=${PG_DSN}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - plc-main
+    networks:
+      - plc_network
+
+  plc-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: plc-frontend
+    restart: always
+    command: streamlit run app.py --server.port 80 --server.address 0.0.0.0 --server.headless true
+    ports:
+      - "80:80"
+    env_file:
+      - .env
+    environment:
+      - PG_DSN=${PG_DSN}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - plc-api
+    networks:
+      - plc_network
+
+networks:
+  plc_network:
+    driver: bridge
