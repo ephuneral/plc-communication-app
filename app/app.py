@@ -111,7 +111,7 @@ with col2:
 if st.sidebar.button("Найти", type="primary"):
     st.session_state.search_params = {
         "serial_number": serial_number if serial_number > 0 else None,
-        "factory_number": factory_number if factory_number > 0 else None,
+        #"factory_number": factory_number if factory_number > 0 else None,
         "diameter": diameter if diameter > 0 else None,
         "thickness": thickness if thickness > 0 else None,
     }
