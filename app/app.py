@@ -84,13 +84,13 @@ def safe_int(value: str) -> int:
 st.sidebar.header("Параметры поиска")
 
 serial_number_str = st.sidebar.text_input("Серийный номер", value="0")
-factory_number_str = st.sidebar.text_input("Заводской номер", value="0")
+#factory_number_str = st.sidebar.text_input("Заводской номер", value="0")
 diameter_str = st.sidebar.text_input("Диаметр", value="0")
 thickness_str = st.sidebar.text_input("Толщина", value="0")
 
 for name, val in [
     ("Серийный номер", serial_number_str),
-    ("Заводской номер", factory_number_str),
+    #("Заводской номер", factory_number_str),
     ("Диаметр", diameter_str),
     ("Толщина", thickness_str),
 ]:
@@ -98,7 +98,7 @@ for name, val in [
         st.sidebar.error(f"Поле '{name}' должно содержать только цифры")
 
 serial_number = safe_int(serial_number_str)
-factory_number = safe_int(factory_number_str)
+#factory_number = safe_int(factory_number_str)
 diameter = safe_int(diameter_str)
 thickness = safe_int(thickness_str)
 
@@ -129,7 +129,7 @@ if not st.session_state.df.empty:
     st.subheader("Результаты поиска")
     st.info(f"Страница {st.session_state.current_page} из {st.session_state.total_pages} (всего записей: {st.session_state.total_records})")
 
-    cols_to_show = [col for col in df.columns if col not in ['graph_x', 'graph_y']]
+    cols_to_show = [col for col in df.columns if col not in ['graph_x', 'graph_y', 'factory_number']]
 
     column_names = {
         'id': 'ID', 'ts': 'Время', 'length': 'Длина', 'diameter': 'Диаметр',
@@ -198,7 +198,7 @@ if not st.session_state.df.empty:
         graph_y.pop()
 
     if graph_x and graph_y:
-        # Кнопка скачивания графика
+        # Кнопка скачивания графикаvmd
         graph_df = pd.DataFrame({
             "Время, сек": [x * 0.1 for x in graph_x],
             "Давление, атм": graph_y
