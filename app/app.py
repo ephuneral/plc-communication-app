@@ -80,27 +80,38 @@ def safe_int(value: str) -> int:
         return int(value)
     return 0
 
+def safe_float(value: str) -> float:
+    value = value.strip()
+    try:
+        return float(value)
+    except ValueError:
+        return 0.0
+
 # === БОКОВАЯ ПАНЕЛЬ ===
 st.sidebar.header("Параметры поиска")
 
 serial_number_str = st.sidebar.text_input("Серийный номер", value="0")
 #factory_number_str = st.sidebar.text_input("Заводской номер", value="0")
-diameter_str = st.sidebar.text_input("Диаметр", value="0")
-thickness_str = st.sidebar.text_input("Толщина", value="0")
+diameter_str = st.sidebar.text_input("Диаметр", value="0.0")
+thickness_str = st.sidebar.text_input("Толщина", value="0.0")
+
+if serial_number_str.strip() and not serial_number_str.strip().isdigit():
+    st.sidebar.error("'Серийный номер' должно содержать только цифры")
 
 for name, val in [
-    ("Серийный номер", serial_number_str),
-    #("Заводской номер", factory_number_str),
     ("Диаметр", diameter_str),
     ("Толщина", thickness_str),
 ]:
-    if val.strip() and not val.strip().isdigit():
-        st.sidebar.error(f"Поле '{name}' должно содержать только цифры")
+    if val.strip():
+        try:
+            float(val)
+        except ValueError:
+            st.sidebar.error(f"'{name}' должно быть числом (например, 7.32)")
 
 serial_number = safe_int(serial_number_str)
 #factory_number = safe_int(factory_number_str)
-diameter = safe_int(diameter_str)
-thickness = safe_int(thickness_str)
+diameter = safe_float(diameter_str)
+thickness = safe_float(thickness_str)
 
 col1, col2 = st.sidebar.columns(2)
 with col1:

@@ -23,8 +23,8 @@ def search_pipes(
     page_size: int = 20,
     serial_number: Optional[int] = None,
     factory_number: Optional[int] = None,
-    diameter: Optional[int] = None,
-    thickness: Optional[int] = None,
+    diameter: Optional[float] = None,
+    thickness: Optional[float] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
 ):
