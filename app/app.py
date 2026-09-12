@@ -229,7 +229,7 @@ if not st.session_state.df.empty:
         if target_pressure > 0:
             fig.add_hline(
                 y=target_pressure, line_dash="dash", line_color="red",
-                annotation_text=f"Цель: {target_pressure} бар",
+                annotation_text=f"Цель: {target_pressure} атм",
                 annotation_position="top right"
             )
 
