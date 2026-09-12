@@ -87,9 +87,9 @@ class PgWriter:
         if factory_number is not None and factory_number != 0:
             conditions.append(Pipe.factory_number == factory_number)
         if diameter is not None and abs(diameter) > 0.001:
-            conditions.append(Pipe.diameter == diameter)
+            conditions.append(Pipe.diameter.between(diameter - 0.001, diameter + 0.001))
         if thickness is not None and abs(thickness) > 0.001:
-            conditions.append(Pipe.thickness == thickness)
+            conditions.append(Pipe.thickness.between(thickness - 0.001, diameter + 0.001))
         if date_from is not None:
             conditions.append(Pipe.ts >= date_from)
         if date_to is not None:
