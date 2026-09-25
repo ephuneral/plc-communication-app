@@ -1,4 +1,0 @@
-python-snap7
-sqlalchemy
-psycopg2-binary
-python-dotenv
